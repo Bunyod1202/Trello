@@ -2,8 +2,12 @@ import { defineStore } from 'pinia'
 
 export const useTaskStore = defineStore('taskStore', {
   state: () => ({
-    groupedTasks: {},
-    tasks: [
+    groupedTasks: {
+      not_started: [],
+      in_progress: [],
+      done: [],
+    },
+    tasks: JSON.parse(localStorage.getItem('tasks')) || [
       {
         id: 1,
         title: 'Frontend task',
@@ -26,7 +30,8 @@ export const useTaskStore = defineStore('taskStore', {
   },
   actions: {
     setTasks(newTasks) {
-      this.tasks = newTasks
+      this.tasks = [...this.tasks, newTasks]
+      localStorage.setItem('tasks', JSON.stringify(this.tasks))
     },
     setChangeTaskStatus(newTasks) {
       const all = [
@@ -36,8 +41,9 @@ export const useTaskStore = defineStore('taskStore', {
       ]
       this.tasks = all
       this.setGroupedTasks(all)
+      localStorage.setItem('tasks', JSON.stringify(this.tasks))
     },
-    setGroupedTasks(newTasks) {
+    setGroupedTasks(newTasks, sort = false) {
       const groups = {
         not_started: [],
         in_progress: [],
@@ -48,7 +54,21 @@ export const useTaskStore = defineStore('taskStore', {
           groups[task.status].push(task)
         }
       })
+      if (sort) {
+        for (const key in groups) {
+          groups[key] = groups[key].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        }
+      }
       this.groupedTasks = groups
+    },
+    setTaskEdit(task) {
+      if (!task.id) {
+        return
+      }
+      const index = this.tasks.findIndex((t) => t.id === task.id)
+      this.tasks.splice(index, 1, task)
+      this.setGroupedTasks(this.tasks)
+      localStorage.setItem('tasks', JSON.stringify(this.tasks))
     },
   },
 })

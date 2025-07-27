@@ -76,7 +76,9 @@ export default defineConfig(() => {
       server: {
         type: 'http',
       },
+      port: 4002,
       open: true, // opens browser window automatically
+      host: '0.0.0.0',
     },
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#framework
