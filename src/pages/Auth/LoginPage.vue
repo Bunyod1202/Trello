@@ -16,11 +16,11 @@
         </q-input>
         <q-input
           v-model="user.password"
-          label="Password"
+          label="Пароль"
           filled
           :type="isPwd ? 'password' : 'text'"
           lazy-rules
-          :rules="[(val) => val.length > 6 || 'Please enter password more than 6 characters']"
+          :rules="[(val) => val.length > 6 || 'Пароль должен содержать более 6 символов']"
         >
           <template v-slot:append>
             <q-icon
@@ -31,11 +31,11 @@
           </template>
         </q-input>
 
-        <q-toggle v-model="darkMode" label="change theme" />
+        <q-toggle icon="dark_mode" v-model="darkMode" label="Сменить тему" />
 
         <div class="flex justify-end">
-          <q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />
-          <q-btn label="Submit" type="submit" color="primary" />
+          <q-btn label="Сбросить" type="reset" color="primary" flat class="q-ml-sm" />
+          <q-btn label="Войти" type="submit" color="primary" />
         </div>
       </q-form>
     </q-card>
@@ -70,7 +70,7 @@ function Authorization() {
     userStore.setTheme(darkMode.value)
     $q.notify({
       type: 'positive',
-      message: 'Authorization success',
+      message: 'Авторизация успешна',
     })
     router.push('/')
   } else {
