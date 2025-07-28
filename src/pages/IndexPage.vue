@@ -29,20 +29,17 @@
           {{ userStore.getUser.email }}
         </div>
         <q-btn class="q-mt-md" flat icon="sort" @click="sortTasks" label="Сортировать по дате" />
-        <q-input
-          outlined
-          v-model="searchQuery"
-          label="Search"
-          debounce="300"
-          clearable
-          prepend-inner-icon="search"
+        <q-select
+          standout
+          v-model="taskStatus"
+          :options="statusOptionsFilter"
+          label="Фильтр по статусу"
         />
-
         <q-list bordered separator class="q-mt-md">
-          <q-item v-for="item in filteredItems" :key="item.id" clickable>
+          <q-item v-for="item in taskStatusFilter" :key="item.id" clickable>
             <q-card class="card-section-bg q-mb-sm cursor-pointer p-3" style="width: 100%" bordered>
               <q-card-section>
-                <div v-html="highlightMatch(item.title)"></div>
+                <div>{{ item.title }}</div>
                 <p class="text-caption wrap">
                   {{ item.description }}
                 </p>
@@ -142,7 +139,10 @@ const userStore = useUserStore()
 const toolsStore = useToolsStore()
 const dialog = computed(() => toolsStore.AddTaskDialog)
 const leftDrawerOpen = ref(false)
-const searchQuery = ref('')
+const taskStatus = ref({
+  label: 'Все',
+  value: 'all',
+})
 const statusOptions = [
   {
     label: 'Не начато',
@@ -157,6 +157,24 @@ const statusOptions = [
     value: 'done',
   },
 ]
+const statusOptionsFilter = [
+  {
+    label: 'Не начато',
+    value: 'not_started',
+  },
+  {
+    label: 'В процессе',
+    value: 'in_progress',
+  },
+  {
+    label: 'Завершено',
+    value: 'done',
+  },
+  {
+    label: 'Все',
+    value: 'all',
+  },
+]
 const sort = ref(false)
 const darkMode = ref(userStore.getTheme)
 const form = ref({
@@ -167,20 +185,19 @@ const form = ref({
 })
 const items = computed(() => taskStore.getTasks)
 
-const filteredItems = computed(() => {
-  if (!searchQuery.value) return items.value
+// const filteredItems = computed(() => {
+//   if (!searchQuery.value) return items.value
 
-  return items.value.filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
-  )
+//   return items.value.filter((item) =>
+//     item.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
+//   )
+// })
+const taskStatusFilter = computed(() => {
+  if (taskStatus.value.value === 'all') return items.value
+
+  return items.value.filter((item) => item.status === taskStatus.value.value)
 })
-function highlightMatch(text) {
-  const query = searchQuery.value
-  if (!query) return text
 
-  const regex = new RegExp(`(${query})`, 'gi')
-  return text.replace(regex, '<mark>$1</mark>')
-}
 function formatDateToYMD(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -192,6 +209,7 @@ function optionFn(dateStr) {
 }
 const sortTasks = () => {
   sort.value = true
+  taskStore.tasks = taskStore.tasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
   taskStore.setGroupedTasks(taskStore.getTasks, sort.value)
 }
 
