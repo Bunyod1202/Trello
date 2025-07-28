@@ -14,7 +14,7 @@
             {{ statusLabels[status] }}
           </div>
         </q-card-section>
-        <q-card-section>
+        <q-card-section class="task-list">
           <TaskItemCard :tasks="taskStore.getTasks" :status="status" />
         </q-card-section>
       </q-card>
@@ -47,4 +47,14 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.task-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+@media (max-width: 600px) {
+  .task-list {
+    max-height: 100%;
+  }
+}
+</style>

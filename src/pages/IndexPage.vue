@@ -28,10 +28,44 @@
           </q-avatar>
           {{ userStore.getUser.email }}
         </div>
-        <q-btn flat icon="sort" @click="sortTasks" label="Сортировать по дате" />
+        <q-btn class="q-mt-md" flat icon="sort" @click="sortTasks" label="Сортировать по дате" />
+        <q-input
+          outlined
+          v-model="searchQuery"
+          label="Search"
+          debounce="300"
+          clearable
+          prepend-inner-icon="search"
+        />
+
+        <q-list bordered separator class="q-mt-md">
+          <q-item v-for="item in filteredItems" :key="item.id" clickable>
+            <q-card class="card-section-bg q-mb-sm cursor-pointer p-3" style="width: 100%" bordered>
+              <q-card-section>
+                <div v-html="highlightMatch(item.title)"></div>
+                <p class="text-caption wrap">
+                  {{ item.description }}
+                </p>
+                <div class="row justify-between">
+                  <div class="text-caption text-grey">📅 {{ item.dueDate }}</div>
+                  <div
+                    class="text-white q-pa-xs"
+                    :class="
+                      item.status === 'not_started'
+                        ? 'bg-indigo-6'
+                        : item.status === 'in_progress'
+                          ? 'bg-yellow-6'
+                          : 'bg-green-6'
+                    "
+                  ></div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-item>
+        </q-list>
       </q-drawer>
       <q-page-container>
-        <TaskList :all-tasks="sortedTasks" />
+        <TaskList />
         <q-dialog v-model="dialog">
           <q-card>
             <div class="text-center text-h6">Добавить задачу</div>
@@ -47,21 +81,34 @@
                 standout
                 v-model="form.description"
                 label="Описание"
+                type="textarea"
                 lazy-rules
                 :rules="[(val) => !!val || 'Обязательный']"
               />
               <q-input
                 standout
-                v-model="form.dueDate"
-                type="date"
                 label="Дата завершения"
+                v-model="form.dueDate"
+                mask="date"
                 lazy-rules
-                :rules="[(val) => !!val || 'Обязательный']"
-              />
+                :rules="['date']"
+              >
+                <template v-slot:append>
+                  <q-icon name="event" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date v-model="form.dueDate" mask="YYYY/MM/DD" :options="optionFn">
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Close" color="primary" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
               <q-select
                 standout
                 v-model="form.status"
-                :options="['not_started', 'in_progress', 'done']"
+                :options="statusOptions"
                 label="Статус"
                 lazy-rules
                 :rules="[(val) => !!val || 'Обязательный']"
@@ -94,10 +141,22 @@ const taskStore = useTaskStore()
 const userStore = useUserStore()
 const toolsStore = useToolsStore()
 const dialog = computed(() => toolsStore.AddTaskDialog)
-const sortedTasks = computed(() => {
-  return [...taskStore.getTasks].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-})
 const leftDrawerOpen = ref(false)
+const searchQuery = ref('')
+const statusOptions = [
+  {
+    label: 'Не начато',
+    value: 'not_started',
+  },
+  {
+    label: 'В процессе',
+    value: 'in_progress',
+  },
+  {
+    label: 'Завершено',
+    value: 'done',
+  },
+]
 const sort = ref(false)
 const darkMode = ref(userStore.getTheme)
 const form = ref({
@@ -106,7 +165,31 @@ const form = ref({
   dueDate: '',
   status: '',
 })
+const items = computed(() => taskStore.getTasks)
 
+const filteredItems = computed(() => {
+  if (!searchQuery.value) return items.value
+
+  return items.value.filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
+  )
+})
+function highlightMatch(text) {
+  const query = searchQuery.value
+  if (!query) return text
+
+  const regex = new RegExp(`(${query})`, 'gi')
+  return text.replace(regex, '<mark>$1</mark>')
+}
+function formatDateToYMD(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}/${month}/${day}`
+}
+function optionFn(dateStr) {
+  return dateStr >= formatDateToYMD(new Date())
+}
 const sortTasks = () => {
   sort.value = true
   taskStore.setGroupedTasks(taskStore.getTasks, sort.value)
@@ -117,7 +200,9 @@ const submitTask = () => {
     $q.notify({ type: 'negative', message: 'Пожалуйста, заполните все обязательные поля.' })
     return
   }
+  form.value.status = form.value.status.value
   taskStore.setTasks({ ...form.value, id: Date.now() })
+  $q.notify({ type: 'positive', message: '✅ Задача добавлена!' })
   toolsStore.toggleAddTaskDialog()
   form.value = { title: '', description: '', dueDate: '', status: '' }
 }

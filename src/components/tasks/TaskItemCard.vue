@@ -33,21 +33,34 @@
             standout
             v-model="form.description"
             label="Описание"
+            type="textarea"
             lazy-rules
             :rules="[(val) => !!val || 'Обязательный']"
           />
           <q-input
             standout
-            v-model="form.dueDate"
-            type="date"
             label="Дата завершения"
+            v-model="form.dueDate"
+            mask="date"
             lazy-rules
-            :rules="[(val) => !!val || 'Обязательный']"
-          />
+            :rules="['date']"
+          >
+            <template v-slot:append>
+              <q-icon name="event" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="form.dueDate" mask="YYYY/MM/DD" :options="optionFn">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
           <q-select
             standout
             v-model="form.status"
-            :options="['not_started', 'in_progress', 'done']"
+            :options="statusOptions"
             label="Статус"
             lazy-rules
             :rules="[(val) => !!val || 'Обязательный']"
@@ -86,10 +99,39 @@ const form = ref({
   dueDate: '',
   status: '',
 })
-
+const statusOptions = [
+  {
+    label: 'Не начато',
+    value: 'not_started',
+  },
+  {
+    label: 'В процессе',
+    value: 'in_progress',
+  },
+  {
+    label: 'Завершено',
+    value: 'done',
+  },
+]
+watch(
+  () => props.tasks,
+  (newVal) => {
+    taskStore.setGroupedTasks(newVal)
+  },
+  { immediate: true },
+)
 const resetForm = () => {
   form.value = { id: null, title: '', description: '', dueDate: '', status: '' }
   toolsStore.toggleEditTaskDialog()
+}
+function formatDateToYMD(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}/${month}/${day}`
+}
+function optionFn(dateStr) {
+  return dateStr >= formatDateToYMD(new Date())
 }
 
 const showDialog = (task) => {
@@ -104,11 +146,13 @@ const submitTask = () => {
     $q.notify({ type: 'negative', message: 'Пожалуйста, заполните все обязательные поля.' })
     return
   }
+  form.value.status = form.value.status.value
   const taskData = {
     ...form.value,
     id: JSON.parse(localStorage.getItem('taskId')),
   }
   taskStore.setTaskEdit(taskData)
+  $q.notify({ type: 'positive', message: '✅ Задача обновлена!' })
   toolsStore.toggleEditTaskDialog()
   form.value = { id: null, title: '', description: '', dueDate: '', status: '' }
 }
@@ -117,14 +161,6 @@ const onDragEnd = () => {
   taskStore.setChangeTaskStatus(groupedTasks.value)
   $q.notify({ type: 'positive', message: '✅ Статус задачи обновлён!' })
 }
-
-watch(
-  () => props.tasks,
-  (newVal) => {
-    taskStore.setGroupedTasks(newVal)
-  },
-  { immediate: true },
-)
 </script>
 
 <style lang="scss" scoped>
